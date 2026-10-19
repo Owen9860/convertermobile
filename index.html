@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#5b5bf0">
+<title>PDF Toolkit</title>
+<style>
+:root{--bg:#f5f7fc;--card:#fff;--text:#111827;--muted:#6b7280;--accent:#5b5bf0;--accent-d:#4646d6;--soft:#eceeff;--border:#d5daea;--ok:#15803d;--err:#b91c1c}
+@media(prefers-color-scheme:dark){:root{--bg:#0f172a;--card:#172036;--text:#f3f4f6;--muted:#9aa6c2;--soft:#1e2b4a;--border:#2a3656;--ok:#4ade80;--err:#f87171}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column}
+header{background:var(--accent);color:#fff;padding:calc(env(safe-area-inset-top,0px) + 16px) 20px 16px}
+header h1{margin:0;font-size:21px}
+header p{margin:2px 0 0;font-size:13px;opacity:.85}
+main{flex:1;overflow-y:auto;padding:18px 16px 8px}
+.view{display:none}.view.active{display:block}
+h2{font-size:18px;margin:0 0 4px}.sub{color:var(--muted);font-size:14px;margin:0 0 14px}
+.btn,button.primary{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:12px;font-size:15px;font-weight:600;padding:12px 18px;border:1px solid var(--border);background:var(--card);color:var(--text);cursor:pointer}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;width:100%;margin-top:16px;padding:14px;font-size:16px}
+button.primary:active{background:var(--accent-d)}
+button.primary:disabled{opacity:.55}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;opacity:0}
+.list{margin-top:14px;display:grid;gap:8px}
+.empty{border:2px dashed var(--border);border-radius:14px;padding:26px;text-align:center;color:var(--muted);font-size:14px}
+.row{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:8px 10px}
+.row img,.pdfico{width:46px;height:46px;border-radius:8px;object-fit:cover;flex:none}
+.pdfico{background:var(--soft);color:var(--accent);font-weight:800;font-size:12px;display:grid;place-items:center}
+.meta{flex:1;min-width:0}.meta b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.meta span{font-size:12px;color:var(--muted)}
+.acts{display:flex;gap:4px}.acts button{width:34px;height:34px;border-radius:9px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:13px}
+select,input[type=text]{width:100%;font-size:16px;padding:12px;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--text);margin-top:6px}
+label.f{display:block;margin-top:14px;font-size:14px;font-weight:600}
+.chosen{margin-top:12px;font-size:14px;color:var(--muted);word-break:break-all}
+.hint{font-size:13px;color:var(--muted);margin:12px 0 0;line-height:1.4}
+.status{min-height:22px;margin:12px 0 0;font-size:14px;color:var(--muted)}.status.ok{color:var(--ok)}.status.err{color:var(--err)}
+.busy .status::after{content:" ⏳"}
+footer{display:flex;justify-content:space-between;padding:4px 16px;font-size:12px;color:var(--muted)}
+footer b{color:var(--accent);font-style:italic}
+nav{display:flex;background:var(--card);border-top:1px solid var(--border);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tab{flex:1;padding:10px 4px;background:none;border:0;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer}
+.tab span{display:block;font-size:20px;margin-bottom:2px}
+.tab.active{color:var(--accent)}
+</style>
+</head>
+<body>
+<header><h1>PDF Toolkit</h1><p>Offline · your files stay on this phone</p></header>
+
+<main>
+  <section class="view active" id="vImages">
+    <h2>Images → PDF</h2><p class="sub">Combine photos into one PDF, one image per page.</p>
+    <label class="btn">＋ Add images<input class="vh" id="imgInput" type="file" accept="image/*" multiple></label>
+    <div class="list" id="imgList"></div>
+    <label class="f">Page size
+      <select id="pageMode"><option value="a4">A4 (image fitted on the page)</option><option value="original">Same size as the image</option></select>
+    </label>
+    <button class="primary" id="imgGo">Create PDF</button>
+  </section>
+
+  <section class="view" id="vMerge">
+    <h2>Merge PDF</h2><p class="sub">Join several PDFs into one. They are combined top to bottom.</p>
+    <label class="btn">＋ Add PDFs<input class="vh" id="mergeInput" type="file" accept="application/pdf,.pdf" multiple></label>
+    <div class="list" id="mergeList"></div>
+    <button class="primary" id="mergeGo">Merge PDFs</button>
+  </section>
+
+  <section class="view" id="vDelete">
+    <h2>Delete pages</h2><p class="sub">Remove unwanted pages. Your original file is not changed.</p>
+    <label class="btn">Choose PDF<input class="vh" id="delInput" type="file" accept="application/pdf,.pdf"></label>
+    <div class="chosen" id="delInfo">No PDF chosen</div>
+    <label class="f">Pages to delete (e.g. 2, 5-7)<input type="text" id="pagesText" inputmode="text" placeholder="2, 5-7"></label>
+    <button class="primary" id="delGo">Delete pages</button>
+  </section>
+
+  <section class="view" id="vP2W">
+    <h2>PDF → Word</h2><p class="sub">Turn a PDF into an editable Word (.docx) file. Works offline.</p>
+    <label class="btn">Choose PDF<input class="vh" id="p2wInput" type="file" accept="application/pdf,.pdf"></label>
+    <div class="chosen" id="p2wInfo">No PDF chosen</div>
+    <label class="f">Conversion type
+      <select id="p2wMode">
+        <option value="text">Editable text (best for text PDFs)</option>
+        <option value="image">Exact look (pages as pictures, not editable)</option>
+      </select>
+    </label>
+    <p class="hint" id="p2wHint">Editable mode rebuilds paragraphs, headings and bold/italic. Tables come out as tabbed text and pictures inside the PDF are left out. Scanned PDFs need “Exact look”.</p>
+    <button class="primary" id="p2wGo">Convert to Word</button>
+  </section>
+
+  <section class="view" id="vW2P">
+    <h2>Word → PDF</h2><p class="sub">Turn a Word (.docx) file into a PDF. Works offline.</p>
+    <label class="btn">Choose Word file<input class="vh" id="w2pInput" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"></label>
+    <div class="chosen" id="w2pInfo">No Word file chosen</div>
+    <p class="hint">Supports .docx (not the old .doc). Text, bold/italic, lists, tables and pictures are kept. Fonts are replaced by Helvetica / Times / Courier, and headers, footers and text boxes are not included.</p>
+    <button class="primary" id="w2pGo">Convert to PDF</button>
+  </section>
+
+  <p class="status" id="status"></p>
+</main>
+
+<footer><span>Free · Offline</span><b>By Owen</b></footer>
+<nav>
+  <button class="tab active" data-view="vImages"><span>🖼️</span>Images</button>
+  <button class="tab" data-view="vMerge"><span>🔗</span>Merge</button>
+  <button class="tab" data-view="vDelete"><span>✂️</span>Delete</button>
+  <button class="tab" data-view="vP2W"><span>📄</span>PDF→Word</button>
+  <button class="tab" data-view="vW2P"><span>📝</span>Word→PDF</button>
+</nav>
+
+<script src="pdf-lib.min.js"></script>
+<script src="lib/jszip.min.js"></script>
+<script src="core.js"></script>
+<script src="convert.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
